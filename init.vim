@@ -6,23 +6,38 @@ let &packpath = &runtimepath
 " - Avoid using standard Vim directory names like 'plugin'
 call plug#begin(stdpath('data') . '/plugged')
 
+" Syntax highlighting
 Plug 'nvim-treesitter/nvim-treesitter', {'do': ':TSUpdate'}
+" LSP / linter package management
 Plug 'williamboman/mason.nvim'
 Plug 'williamboman/mason-lspconfig.nvim'
 Plug 'neovim/nvim-lspconfig'
 Plug 'WhoIsSethDaniel/mason-tool-installer.nvim'
+Plug 'mhartington/formatter.nvim'
+" Autocomplete
+Plug 'hrsh7th/cmp-nvim-lsp'
+Plug 'hrsh7th/cmp-buffer'
+Plug 'hrsh7th/cmp-path'
+Plug 'hrsh7th/cmp-cmdline'
+Plug 'hrsh7th/nvim-cmp'
+Plug 'hrsh7th/cmp-vsnip'
+Plug 'hrsh7th/vim-vsnip'
+" Color scheme
 Plug 'sainnhe/sonokai'
 Plug 'jiangmiao/auto-pairs'
+" CTRL-P
 Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
 Plug 'junegunn/fzf.vim'
+" Definitions overview
 Plug 'majutsushi/tagbar'
+" Status bar
 Plug 'vim-airline/vim-airline'
+" Utilities
 Plug 'tpope/vim-fugitive'
 Plug 'tpope/vim-surround'
 Plug 'tpope/vim-repeat'
 Plug 'alvan/vim-closetag'
 Plug 'preservim/nerdcommenter'
-Plug 'psf/black'
 
 call plug#end()
 
@@ -86,10 +101,10 @@ augroup Markdown
   autocmd FileType markdown set linebreak wrap
 augroup END
 
-augroup black_on_save
+augroup FormatAutogroup
   autocmd!
-  autocmd BufWritePre *.py Black
-augroup end
+  autocmd BufWritePost * FormatWrite
+augroup END
 
 " fix workman binding
 noremap l o
@@ -164,7 +179,7 @@ require('nvim-treesitter.configs').setup({
 require("mason").setup({ })
 require("mason-tool-installer").setup({
     ensure_installed = {
-        "prettier",
+        "prettierd",
         "pyright",
         "svelte-language-server",
         "lua-language-server",
@@ -173,8 +188,93 @@ require("mason-tool-installer").setup({
 })
 
 require("mason-lspconfig").setup({})
-require("lspconfig").svelte.setup({})
-require("lspconfig").pyright.setup({})
+
+-- Set up nvim-cmp.
+local cmp = require('cmp')
+
+cmp.setup({
+    snippet = {
+      -- REQUIRED - you must specify a snippet engine
+      expand = function(args)
+        vim.fn["vsnip#anonymous"](args.body) -- For `vsnip` users.
+      end,
+    },
+    window = {
+      -- completion = cmp.config.window.bordered(),
+      -- documentation = cmp.config.window.bordered(),
+    },
+    mapping = cmp.mapping.preset.insert({
+      ['<C-b>'] = cmp.mapping.scroll_docs(-4),
+      ['<C-f>'] = cmp.mapping.scroll_docs(4),
+      ['<C-Space>'] = cmp.mapping.complete(),
+      ['<C-e>'] = cmp.mapping.abort(),
+      ['<tab>'] = cmp.mapping.confirm({ select = true }),
+      ['<CR>'] = cmp.mapping.confirm({ select = true })
+    }),
+    sources = cmp.config.sources({
+      { name = 'nvim_lsp' },
+      { name = 'vsnip' }, -- For vsnip users.
+    }, {
+      { name = 'buffer' },
+    })
+})
+
+-- To use git you need to install the plugin petertriho/cmp-git and uncomment lines below
+-- Set configuration for specific filetype.
+--[[ cmp.setup.filetype('gitcommit', {
+sources = cmp.config.sources({
+  { name = 'git' },
+}, {
+  { name = 'buffer' },
+})
+})
+require("cmp_git").setup() ]]-- 
+
+-- Use buffer source for `/` and `?` (if you enabled `native_menu`, this won't work anymore).
+cmp.setup.cmdline({ '/', '?' }, {
+    mapping = cmp.mapping.preset.cmdline(),
+    sources = {
+      { name = 'buffer' }
+    }
+})
+
+-- Use cmdline & path source for ':' (if you enabled `native_menu`, this won't work anymore).
+cmp.setup.cmdline(':', {
+    mapping = cmp.mapping.preset.cmdline(),
+    sources = cmp.config.sources({
+      { name = 'path' }
+    }, {
+      { name = 'cmdline' }
+    }),
+    matching = { disallow_symbol_nonprefix_matching = false }
+})
+
+-- Set up lspconfig.
+local capabilities = require('cmp_nvim_lsp').default_capabilities()
+require("lspconfig").svelte.setup({
+    capabilities = capabilities
+})
+require("lspconfig").pyright.setup({
+    capabilities = capabilities
+})
+
+-- Utilities for creating configurations
+local util = require "formatter.util"
+
+-- Provides the Format, FormatWrite, FormatLock, and FormatWriteLock commands
+require("formatter").setup {
+  -- Enable or disable logging
+  logging = true,
+  -- Set the log level
+  log_level = vim.log.levels.WARN,
+  -- All formatter configurations are opt-in
+  filetype = {
+    ["*"] = {
+      require("formatter.defaults.prettierd")
+    }
+  }
+}
+
 EOF
 
 
