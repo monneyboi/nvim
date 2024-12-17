@@ -1,0 +1,8 @@
+{
+    "suggest.noselect": true,
+    "python.analysis.typeCheckingMode": "off",
+    "python.formatting.provider": "black",
+    "coc.preferences.formatOnSave": true,
+    "svelte.enable-ts-plugin": true,
+    "inlayHint.enable": false
+}
