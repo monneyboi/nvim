@@ -180,6 +180,7 @@ require("mason").setup({ })
 require("mason-tool-installer").setup({
     ensure_installed = {
         "prettierd",
+        "black",
         "pyright",
         "svelte-language-server",
         "lua-language-server",
@@ -263,17 +264,28 @@ local util = require "formatter.util"
 
 -- Provides the Format, FormatWrite, FormatLock, and FormatWriteLock commands
 require("formatter").setup {
-  -- Enable or disable logging
-  logging = true,
-  -- Set the log level
-  log_level = vim.log.levels.WARN,
-  -- All formatter configurations are opt-in
-  filetype = {
-    ["*"] = {
-      require("formatter.defaults.prettierd")
+    -- Enable or disable logging
+    logging = true,
+    -- Set the log level
+    log_level = vim.log.levels.WARN,
+    -- All formatter configurations are opt-in
+    filetype = {
+        python = {
+            require("formatter.filetypes.python").black,
+        },
+        ["*"] = {
+            require("formatter.defaults.prettierd")
+        }
     }
-  }
 }
+
+-- Diagnostics position
+vim.diagnostic.config({
+  virtual_text = false
+})
+-- Show line diagnostics automatically in hover window
+vim.o.updatetime = 250
+vim.cmd [[autocmd CursorHold,CursorHoldI * lua vim.diagnostic.open_float(nil, {focus=false})]]
 
 EOF
 
