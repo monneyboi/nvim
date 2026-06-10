@@ -22,6 +22,9 @@ Plug 'hrsh7th/cmp-cmdline'
 Plug 'hrsh7th/nvim-cmp'
 Plug 'hrsh7th/cmp-vsnip'
 Plug 'hrsh7th/vim-vsnip'
+" AI
+"Plug 'nvim-lua/plenary.nvim'
+"Plug 'olimorris/codecompanion.nvim'
 " Color scheme
 Plug 'sainnhe/sonokai'
 Plug 'jiangmiao/auto-pairs'
@@ -48,6 +51,7 @@ let g:markdown_fenced_languages = ['python']
 
 " Add tabbar at the top
 let g:airline#extensions#tabline#enabled = 1
+let g:airline#extensions#whitespace#symbol = '!'
 
 " Color scheme
 hi MatchParen cterm=bold ctermbg=none ctermfg=green
@@ -106,6 +110,11 @@ augroup FormatAutogroup
   autocmd BufWritePost * FormatWrite
 augroup END
 
+augroup YamlTemplate
+  autocmd!
+  autocmd BufNewFile,BufRead *.yaml.tpl set filetype=yaml
+augroup END
+
 " fix workman binding
 noremap l o
 noremap o l
@@ -161,19 +170,12 @@ let g:tagbar_autofocus = 1
 autocmd BufRead,BufNewFile *.md setlocal textwidth=80
 
 lua << EOF
-require('nvim-treesitter.configs').setup({
-  ensure_installed = { "c", "lua", "vim", "vimdoc", "query", "python", "typescript", "javascript", "svelte", "css" },
-  sync_install = false,
-  auto_install = false,
-
-  highlight = {
-    enable = true,
-    -- Setting this to true will run `:h syntax` and tree-sitter at the same time.
-    -- Set this to `true` if you depend on 'syntax' being enabled (like for indentation).
-    -- Using this option may slow down your editor, and you may see some duplicate highlights.
-    -- Instead of true it can also be a list of languages
-    additional_vim_regex_highlighting = false,
-  },
+-- Treesitter: install parsers, enable highlighting via Neovim built-in
+require('nvim-treesitter').setup {}
+require('nvim-treesitter').install { "c", "lua", "vim", "vimdoc", "query", "python", "typescript", "javascript", "svelte", "css", "html", "json", "yaml", "bash", "markdown" }
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = { 'c', 'lua', 'vim', 'python', 'typescript', 'javascript', 'svelte', 'css', 'html', 'json', 'yaml', 'bash', 'markdown' },
+  callback = function() vim.treesitter.start() end,
 })
 
 require("mason").setup({ })
@@ -251,17 +253,14 @@ cmp.setup.cmdline(':', {
     matching = { disallow_symbol_nonprefix_matching = false }
 })
 
--- Set up lspconfig.
+-- Set up LSP servers (new vim.lsp.config API)
 local capabilities = require('cmp_nvim_lsp').default_capabilities()
-require("lspconfig").svelte.setup({
-    capabilities = capabilities
-})
-require("lspconfig").pyright.setup({
-    capabilities = capabilities
-})
-require("lspconfig").ts_ls.setup({
-    capabilities = capabilities
-})
+vim.lsp.config('svelte', { capabilities = capabilities })
+vim.lsp.enable('svelte')
+vim.lsp.config('pyright', { capabilities = capabilities })
+vim.lsp.enable('pyright')
+vim.lsp.config('ts_ls', { capabilities = capabilities })
+vim.lsp.enable('ts_ls')
 
 -- Utilities for creating configurations
 local util = require "formatter.util"
@@ -282,6 +281,18 @@ require("formatter").setup {
         }
     }
 }
+
+-- AI
+--require("codecompanion").setup({
+--  strategies = {
+--    chat = {
+--      adapter = "ollama",
+--    },
+--    inline = {
+--      adapter = "ollama",
+--    },
+--  },
+--})
 
 -- Diagnostics position
 vim.diagnostic.config({
